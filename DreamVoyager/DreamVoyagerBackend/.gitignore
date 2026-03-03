@@ -1,0 +1,17 @@
+# Abhängigkeiten (Niemals hochladen!)
+node_modules/
+
+# Build-Ordner (TypeScript-Output)
+dist/
+
+# Datenbank
+*.sqlite
+*.sqlite-journal
+
+# Logs & Umgebungsvariablen
+npm-debug.log*
+.env
+
+# Betriebssystem-Dateien
+.DS_Store
+Thumbs.db
