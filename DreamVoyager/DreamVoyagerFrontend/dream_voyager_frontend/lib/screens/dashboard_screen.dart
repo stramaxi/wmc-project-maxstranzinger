@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/dream_model.dart';
 import '../services/api_service.dart';
 import '../widgets/dream_card.dart';
+import 'analytics_screen.dart';
 import 'detail_reader_screen.dart';
 import 'recorder_screen.dart';
 
@@ -41,6 +42,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (saved == true && mounted) {
       await _refreshDreams();
     }
+  }
+
+  Future<void> _openAnalytics() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => const AnalyticsScreen(),
+      ),
+    );
   }
 
   void _openDetail(Dream dream) {
@@ -88,7 +97,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
 
-    if (index == 2 || index == 3) {
+    if (index == 2) {
+      await _openAnalytics();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _selectedTab = 0;
+      });
+      return;
+    }
+
+    if (index == 3) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Coming soon.')),
       );
@@ -190,6 +210,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E21),
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
