@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>DreamVoyager needs microphone access to capture your dream narration.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>DreamVoyager uses speech recognition to transcribe your spoken dreams into text.</string>
 </dict>
 </plist>

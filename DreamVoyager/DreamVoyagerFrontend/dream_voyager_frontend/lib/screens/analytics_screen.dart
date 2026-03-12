@@ -4,6 +4,10 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../services/theme_service.dart';
+import '../widgets/dream_bottom_navigation_bar.dart';
+import 'recorder_screen.dart';
+import 'settings_screen.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -28,44 +32,30 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     });
   }
 
-  Widget _navIcon({required IconData icon, required bool isActive}) {
-    if (!isActive) {
-      return Icon(icon);
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF8D5CFF).withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8D5CFF).withValues(alpha: 0.6),
-            blurRadius: 20,
-          ),
-        ],
-      ),
-      child: Icon(icon),
-    );
-  }
-
   Future<void> _onNavTap(int index) async {
     if (index == 0) {
-      Navigator.of(context).pop();
+      Navigator.of(context).popUntil((route) => route.isFirst);
       return;
     }
+
     if (index == 1) {
-      Navigator.of(context).pop();
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const RecorderScreen()),
+      );
       return;
     }
+
     if (index == 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Coming soon.')),
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const SettingsScreen()),
       );
     }
   }
 
   Widget _buildChartCard(AnalyticsData data) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final palette = context.dreamPalette;
     final spots = <FlSpot>[];
     for (int i = 0; i < data.trend.length; i++) {
       spots.add(FlSpot(i.toDouble(), data.trend[i].moodScore));
@@ -74,9 +64,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A2247),
+        color: palette.cardElevated,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFF2D3C74)),
+        border: Border.all(color: colors.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,18 +81,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   show: true,
                   horizontalInterval: 2,
                   verticalInterval: 1,
-                  getDrawingHorizontalLine: (_) => const FlLine(
-                    color: Color(0xFF303A69),
-                    strokeWidth: 1,
-                  ),
-                  getDrawingVerticalLine: (_) => const FlLine(
-                    color: Color(0xFF28305A),
-                    strokeWidth: 1,
-                  ),
+                  getDrawingHorizontalLine: (_) =>
+                      FlLine(color: palette.chartGrid, strokeWidth: 1),
+                  getDrawingVerticalLine: (_) =>
+                      FlLine(color: palette.chartGridSecondary, strokeWidth: 1),
                 ),
                 titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -110,7 +100,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       reservedSize: 26,
                       getTitlesWidget: (value, meta) => Text(
                         value.toInt().toString(),
-                        style: const TextStyle(color: Colors.white54, fontSize: 12),
+                        style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -127,7 +120,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
                             data.trend[index].label,
-                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                            style: TextStyle(
+                              color: colors.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
                           ),
                         );
                       },
@@ -136,25 +132,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
                 borderData: FlBorderData(
                   show: true,
-                  border: Border.all(color: const Color(0xFF495184), width: 1),
+                  border: Border.all(color: palette.chartBorder, width: 1),
                 ),
                 lineBarsData: [
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF8A63FF), Color(0xFF6CA8FF)],
+                    gradient: LinearGradient(
+                      colors: <Color>[colors.primary, colors.secondary],
                     ),
                     barWidth: 4,
                     isStrokeCapRound: true,
                     dotData: FlDotData(
                       show: true,
-                      getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                        radius: 5,
-                        color: const Color(0xFF8D5CFF),
-                        strokeWidth: 2,
-                        strokeColor: const Color(0xFFB6A0FF),
-                      ),
+                      getDotPainter: (spot, percent, barData, index) =>
+                          FlDotCirclePainter(
+                            radius: 5,
+                            color: colors.primary,
+                            strokeWidth: 2,
+                            strokeColor: colors.secondary,
+                          ),
                     ),
                     belowBarData: BarAreaData(show: false),
                   ),
@@ -163,14 +160,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          Divider(color: Colors.white.withValues(alpha: 0.14), height: 1),
+          Divider(color: theme.dividerColor.withValues(alpha: 0.7), height: 1),
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _StatItem(label: 'Avg Mood', value: data.avgMood, color: const Color(0xFF8A63FF)),
-              _StatItem(label: 'Best', value: data.bestMood, color: const Color(0xFF8FB4FF)),
-              _StatItem(label: 'Lowest', value: data.lowestMood, color: const Color(0xFF77A3FF)),
+              _StatItem(
+                label: 'Avg Mood',
+                value: data.avgMood,
+                color: colors.primary,
+              ),
+              _StatItem(
+                label: 'Best',
+                value: data.bestMood,
+                color: palette.balanced,
+              ),
+              _StatItem(
+                label: 'Lowest',
+                value: data.lowestMood,
+                color: palette.alert,
+              ),
             ],
           ),
         ],
@@ -179,23 +188,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildThemeCloud(AnalyticsData data) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final palette = context.dreamPalette;
     final entries = data.tagFrequency.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     if (entries.isEmpty) {
       return Text(
         'No themes yet.',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white60),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: colors.onSurfaceVariant,
+        ),
       );
     }
-
-    final palette = <Color>[
-      const Color(0xFF6DA4FF),
-      const Color(0xFF7E7CFF),
-      const Color(0xFF965CFF),
-      const Color(0xFF3E7DD8),
-      const Color(0xFFB85DCD),
-    ];
 
     return Wrap(
       spacing: 12,
@@ -206,22 +212,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              color: palette[i % palette.length].withValues(alpha: 0.18),
+              color: palette
+                  .analyticsPalette[i % palette.analyticsPalette.length]
+                  .withValues(alpha: 0.18),
               border: Border.all(
-                color: palette[i % palette.length].withValues(alpha: 0.7),
+                color: palette
+                    .analyticsPalette[i % palette.analyticsPalette.length]
+                    .withValues(alpha: 0.7),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: palette[i % palette.length].withValues(alpha: 0.22),
+                  color: palette
+                      .analyticsPalette[i % palette.analyticsPalette.length]
+                      .withValues(alpha: 0.22),
                   blurRadius: 14,
                 ),
               ],
             ),
             child: Text(
               entries[i].key,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                  ),
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: colors.onSurface,
+              ),
             ),
           ),
       ],
@@ -230,8 +242,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final palette = context.dreamPalette;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E21),
+      backgroundColor: theme.scaffoldBackgroundColor,
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: FutureBuilder<AnalyticsData>(
@@ -244,12 +260,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             if (snapshot.hasError) {
               final error = snapshot.error;
               final errorText = error.toString().toLowerCase();
-              final isNetworkError = error is SocketException ||
-                errorText.contains('network error') ||
-                errorText.contains('socketexception');
+              final isNetworkError =
+                  error is SocketException ||
+                  errorText.contains('network error') ||
+                  errorText.contains('socketexception');
               final message = isNetworkError
-                ? 'Server not reached. Check localhost:3000 and retry.'
-                : 'Could not load analytics.\n$error';
+                  ? 'Server not reached. Check localhost:3000 and retry.'
+                  : 'Could not load analytics.\n$error';
 
               return Center(
                 child: Padding(
@@ -260,10 +277,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       Text(
                         message,
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white70),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 14),
-                      OutlinedButton(onPressed: _retry, child: const Text('Retry')),
+                      OutlinedButton(
+                        onPressed: _retry,
+                        child: const Text('Retry'),
+                      ),
                     ],
                   ),
                 ),
@@ -284,9 +306,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         height: 52,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0xFF8D5CFF).withValues(alpha: 0.28),
+                          color: colors.primary.withValues(alpha: 0.16),
                         ),
-                        child: const Icon(Icons.trending_up_rounded, color: Colors.white),
+                        child: Icon(
+                          Icons.trending_up_rounded,
+                          color: colors.primary,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Column(
@@ -294,16 +319,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         children: [
                           Text(
                             'Analytics',
-                            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                            style: theme.textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           Text(
                             'Your dream insights',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.white60,
-                                ),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
@@ -312,29 +336,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   const SizedBox(height: 28),
                   Text(
                     'Mood Trends',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   _buildChartCard(data),
                   const SizedBox(height: 26),
                   Text(
                     'Dream Themes',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A2247),
+                      color: palette.cardElevated,
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: const Color(0xFF2D3C74)),
+                      border: Border.all(color: colors.outline),
                     ),
                     child: _buildThemeCloud(data),
                   ),
@@ -344,36 +366,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           },
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: DreamBottomNavigationBar(
         currentIndex: 2,
         onTap: _onNavTap,
-        backgroundColor: const Color(0xFF11152D),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white54,
-        showUnselectedLabels: true,
-        items: [
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.cloud_outlined, isActive: false),
-            activeIcon: _navIcon(icon: Icons.cloud_outlined, isActive: true),
-            label: 'Dreams',
-          ),
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.mic_none_rounded, isActive: false),
-            activeIcon: _navIcon(icon: Icons.mic_none_rounded, isActive: true),
-            label: 'Record',
-          ),
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.bar_chart_outlined, isActive: false),
-            activeIcon: _navIcon(icon: Icons.bar_chart_outlined, isActive: true),
-            label: 'Stats',
-          ),
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.settings_outlined, isActive: false),
-            activeIcon: _navIcon(icon: Icons.settings_outlined, isActive: true),
-            label: 'Settings',
-          ),
-        ],
       ),
     );
   }
@@ -392,22 +387,26 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Column(
       children: [
         Text(
           value.toStringAsFixed(1),
           style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-                shadows: [
-                  Shadow(color: color.withValues(alpha: 0.45), blurRadius: 12),
-                ],
-              ),
+            color: color,
+            fontWeight: FontWeight.w700,
+            shadows: [
+              Shadow(color: color.withValues(alpha: 0.45), blurRadius: 12),
+            ],
+          ),
         ),
         const SizedBox(height: 3),
         Text(
           label,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white60),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(color: colors.onSurfaceVariant),
         ),
       ],
     );

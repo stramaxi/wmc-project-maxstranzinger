@@ -8,10 +8,7 @@ import 'package:http/http.dart' as http;
 import '../models/dream_model.dart';
 
 class MoodTrendPoint {
-  MoodTrendPoint({
-    required this.label,
-    required this.moodScore,
-  });
+  MoodTrendPoint({required this.label, required this.moodScore});
 
   final String label;
   final double moodScore;
@@ -34,9 +31,19 @@ class AnalyticsData {
 }
 
 class ApiService {
-  static const String _baseUrl = 'http://localhost:3000/api';
-  static const String _androidEmulatorBaseUrl = 'http://localhost:3000/api';
   static const Duration _requestTimeout = Duration(seconds: 12);
+
+  String get _apiBaseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:3000/api';
+    }
+
+    if (Platform.isAndroid) {
+      return 'http://10.0.2.2:3000/api';
+    }
+
+    return 'http://localhost:3000/api';
+  }
 
   Future<http.Response> _getWithRetry(Uri url, {int retries = 1}) async {
     int attempts = 0;
@@ -58,8 +65,8 @@ class ApiService {
     final List<dynamic> list = decoded is List
         ? decoded
         : (decoded is Map<String, dynamic> && decoded['data'] is List
-            ? decoded['data'] as List<dynamic>
-            : <dynamic>[]);
+              ? decoded['data'] as List<dynamic>
+              : <dynamic>[]);
 
     return list
         .map((item) => Dream.fromJson(item as Map<String, dynamic>))
@@ -71,19 +78,17 @@ class ApiService {
   }
 
   Future<List<Dream>> fetchDreams() async {
-    final Uri url = Uri.parse('$_baseUrl/dreams');
+    final Uri url = Uri.parse('$_apiBaseUrl/dreams');
 
     try {
       final response = await _getWithRetry(url);
 
       if (response.statusCode != 200) {
-        throw Exception(
-          'Failed to load dreams (HTTP ${response.statusCode}).',
-        );
+        throw Exception('Failed to load dreams (HTTP ${response.statusCode}).');
       }
 
-        final dynamic decoded = jsonDecode(response.body);
-        return _parseDreamList(decoded);
+      final dynamic decoded = jsonDecode(response.body);
+      return _parseDreamList(decoded);
     } on SocketException catch (e) {
       throw Exception(
         'Network error while loading dreams. Check backend host/port and Android emulator networking. ($e)',
@@ -131,7 +136,9 @@ class ApiService {
         )
         .toList();
 
-    final allScores = dreams.map((dream) => dream.moodScore.clamp(0, 10).toDouble()).toList();
+    final allScores = dreams
+        .map((dream) => dream.moodScore.clamp(0, 10).toDouble())
+        .toList();
     final avgMood = allScores.reduce((a, b) => a + b) / allScores.length;
     final bestMood = allScores.reduce((a, b) => a > b ? a : b);
     final lowestMood = allScores.reduce((a, b) => a < b ? a : b);
@@ -143,7 +150,11 @@ class ApiService {
         if (normalized.isEmpty) {
           continue;
         }
-        tagFrequency.update(normalized, (count) => count + 1, ifAbsent: () => 1);
+        tagFrequency.update(
+          normalized,
+          (count) => count + 1,
+          ifAbsent: () => 1,
+        );
       }
     }
 
@@ -162,7 +173,7 @@ class ApiService {
     int isLucid = 0,
     List<String> tags = const <String>[],
   }) async {
-    final Uri url = Uri.parse('$_androidEmulatorBaseUrl/dreams');
+    final Uri url = Uri.parse('$_apiBaseUrl/dreams');
     debugPrint('[ApiService] POST $url');
 
     final body = jsonEncode(<String, dynamic>{
@@ -174,25 +185,20 @@ class ApiService {
 
     try {
       final response = await http
-          .post(
-            url,
-            headers: {'Content-Type': 'application/json'},
-            body: body,
-          )
+          .post(url, headers: {'Content-Type': 'application/json'}, body: body)
           .timeout(_requestTimeout);
       debugPrint('[ApiService] POST $url -> ${response.statusCode}');
 
       if (response.statusCode != 201 && response.statusCode != 200) {
-        throw Exception(
-          'Failed to save dream (HTTP ${response.statusCode}).',
-        );
+        throw Exception('Failed to save dream (HTTP ${response.statusCode}).');
       }
 
       final dynamic decoded = jsonDecode(response.body);
       final Map<String, dynamic> json =
-          decoded is Map<String, dynamic> && decoded['dream'] is Map<String, dynamic>
-              ? decoded['dream'] as Map<String, dynamic>
-              : decoded as Map<String, dynamic>;
+          decoded is Map<String, dynamic> &&
+              decoded['dream'] is Map<String, dynamic>
+          ? decoded['dream'] as Map<String, dynamic>
+          : decoded as Map<String, dynamic>;
 
       return Dream.fromJson(json);
     } on SocketException catch (e) {
@@ -211,24 +217,24 @@ class ApiService {
   }
 
   Future<Dream> fetchDreamById(String id) async {
-    final Uri url = Uri.parse('$_androidEmulatorBaseUrl/dreams/$id');
+    final Uri url = Uri.parse('$_apiBaseUrl/dreams/$id');
 
     try {
       final response = await http.get(url).timeout(_requestTimeout);
 
       if (response.statusCode != 200) {
-        throw Exception(
-          'Failed to load dream (HTTP ${response.statusCode}).',
-        );
+        throw Exception('Failed to load dream (HTTP ${response.statusCode}).');
       }
 
       final dynamic decoded = jsonDecode(response.body);
       final Map<String, dynamic> json =
-          decoded is Map<String, dynamic> && decoded['dream'] is Map<String, dynamic>
-              ? decoded['dream'] as Map<String, dynamic>
-              : (decoded is Map<String, dynamic> && decoded['data'] is Map<String, dynamic>
-                  ? decoded['data'] as Map<String, dynamic>
-                  : decoded as Map<String, dynamic>);
+          decoded is Map<String, dynamic> &&
+              decoded['dream'] is Map<String, dynamic>
+          ? decoded['dream'] as Map<String, dynamic>
+          : (decoded is Map<String, dynamic> &&
+                    decoded['data'] is Map<String, dynamic>
+                ? decoded['data'] as Map<String, dynamic>
+                : decoded as Map<String, dynamic>);
 
       return Dream.fromJson(json);
     } on SocketException {

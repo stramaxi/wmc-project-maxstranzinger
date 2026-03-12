@@ -1,28 +1,30 @@
 import 'package:flutter/material.dart';
 
+import '../services/theme_service.dart';
+
 class MoodSlider extends StatelessWidget {
-  const MoodSlider({
-    required this.value,
-    required this.onChanged,
-    super.key,
-  });
+  const MoodSlider({required this.value, required this.onChanged, super.key});
 
   final double value;
   final ValueChanged<double> onChanged;
 
   Color _colorForValue(double mood) {
     final t = ((mood - 1) / 9).clamp(0.0, 1.0);
-    return Color.lerp(const Color(0xFF3C67FF), const Color(0xFFF1C96A), t) ?? const Color(0xFF8D5CFF);
+    return Color.lerp(const Color(0xFF3C67FF), const Color(0xFFF1C96A), t) ??
+        const Color(0xFF8D5CFF);
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final palette = context.dreamPalette;
     final glow = _colorForValue(value);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF111B3B),
+        color: palette.cardElevated,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: glow.withValues(alpha: 0.45)),
         boxShadow: [
@@ -40,18 +42,18 @@ class MoodSlider extends StatelessWidget {
             children: [
               Text(
                 'Mood',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: colors.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const Spacer(),
               Text(
                 value.toStringAsFixed(1),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: glow,
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: glow,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -59,7 +61,7 @@ class MoodSlider extends StatelessWidget {
             data: SliderTheme.of(context).copyWith(
               trackHeight: 6,
               activeTrackColor: glow,
-              inactiveTrackColor: const Color(0xFF3A4270),
+              inactiveTrackColor: colors.outline.withValues(alpha: 0.55),
               thumbColor: glow,
               overlayColor: glow.withValues(alpha: 0.2),
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 9),
@@ -75,8 +77,18 @@ class MoodSlider extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('1', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white54)),
-              Text('10', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white54)),
+              Text(
+                '1',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                '10',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ],

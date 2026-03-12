@@ -3,13 +3,13 @@ import 'dart:io';
 
 import '../models/dream_model.dart';
 import '../services/api_service.dart';
+import '../services/theme_service.dart';
+import '../services/voice_service.dart';
+import '../widgets/app_snackbar.dart';
 
 class DetailReaderScreen extends StatefulWidget {
-  const DetailReaderScreen({
-    this.dream,
-    this.dreamId,
-    super.key,
-  }) : assert(dream != null || dreamId != null);
+  const DetailReaderScreen({this.dream, this.dreamId, super.key})
+    : assert(dream != null || dreamId != null);
 
   final Dream? dream;
   final String? dreamId;
@@ -20,6 +20,7 @@ class DetailReaderScreen extends StatefulWidget {
 
 class _DetailReaderScreenState extends State<DetailReaderScreen> {
   final ApiService _apiService = ApiService();
+  final VoiceService _voiceService = VoiceService();
   late Future<Dream> _dreamFuture;
 
   @override
@@ -28,6 +29,41 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
     _dreamFuture = widget.dream != null
         ? Future<Dream>.value(widget.dream!)
         : _apiService.fetchDreamById(widget.dreamId!);
+    _voiceService.addListener(_handleVoiceStateChanged);
+  }
+
+  @override
+  void dispose() {
+    _voiceService
+      ..removeListener(_handleVoiceStateChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleVoiceStateChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _toggleDreamPlayback(String content) async {
+    try {
+      await _voiceService.toggleSpeaking(content);
+    } on VoiceServiceException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      showAppSnackBar(context, error.message, icon: Icons.volume_off_rounded);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      showAppSnackBar(
+        context,
+        'Audio playback is unavailable right now.',
+        icon: Icons.volume_off_rounded,
+      );
+    }
   }
 
   String _moodEmoji(double score) {
@@ -41,13 +77,15 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
   }
 
   Color _moodColor(double score) {
+    final palette = context.dreamPalette;
+
     if (score >= 8) {
-      return const Color(0xFF7BE0A0);
+      return palette.success;
     }
     if (score >= 5) {
-      return const Color(0xFF8FB4FF);
+      return palette.balanced;
     }
-    return const Color(0xFFFF8A8A);
+    return palette.alert;
   }
 
   String _moodLabel(double score) {
@@ -61,14 +99,16 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
   }
 
   Widget _buildMoodRing(double score) {
-    final normalized = (score.clamp(0, 10) as num).toDouble() / 10;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final normalized = score.clamp(0, 10).toDouble() / 10;
     final color = _moodColor(score);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF16213E),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
@@ -88,10 +128,10 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
                 ),
                 Text(
                   score.toStringAsFixed(1),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -103,17 +143,17 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
               children: [
                 Text(
                   'Mood Score',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Colors.white70,
-                      ),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   _moodLabel(score),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -160,20 +200,16 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
           onTap: () => Navigator.of(context).maybePop(),
         ),
         const Spacer(),
-        _topIconButton(
-          icon: Icons.bookmark_border_rounded,
-          onTap: () {},
-        ),
+        _topIconButton(icon: Icons.bookmark_border_rounded, onTap: () {}),
         const SizedBox(width: 10),
-        _topIconButton(
-          icon: Icons.share_outlined,
-          onTap: () {},
-        ),
+        _topIconButton(icon: Icons.share_outlined, onTap: () {}),
       ],
     );
   }
 
   Widget _topIconButton({required IconData icon, required VoidCallback onTap}) {
+    final colors = Theme.of(context).colorScheme;
+
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
@@ -182,20 +218,23 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
         height: 44,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          color: const Color(0xFF16213E),
-          border: Border.all(color: const Color(0xFF8D5CFF).withValues(alpha: 0.35)),
+          color: colors.surface,
+          border: Border.all(color: colors.primary.withValues(alpha: 0.35)),
         ),
-        child: Icon(icon, color: Colors.white),
+        child: Icon(icon, color: colors.onSurface),
       ),
     );
   }
 
   Widget _buildDreamThemes(List<String> tags) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     if (tags.isEmpty) {
       return Text(
         'No dream themes yet.',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: Colors.white60,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: colors.onSurfaceVariant,
         ),
       );
     }
@@ -209,13 +248,13 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
-                color: const Color(0xFF8D5CFF).withValues(alpha: 0.19),
+                color: colors.primary.withValues(alpha: 0.16),
                 border: Border.all(
-                  color: const Color(0xFFC8B4FF).withValues(alpha: 0.45),
+                  color: colors.primary.withValues(alpha: 0.34),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8D5CFF).withValues(alpha: 0.28),
+                    color: colors.primary.withValues(alpha: 0.2),
                     blurRadius: 14,
                     spreadRadius: 0.4,
                   ),
@@ -223,10 +262,10 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
               ),
               child: Text(
                 tag,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: colors.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           )
@@ -235,6 +274,10 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
   }
 
   Widget _buildLoadedView(Dream dream) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final palette = context.dreamPalette;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,11 +294,11 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
               Expanded(
                 child: Text(
                   _formattedFullDate(dream.createdAt),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        height: 1.3,
-                      ),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
                 ),
               ),
             ],
@@ -267,24 +310,34 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
             width: double.infinity,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF7F5AF0), Color(0xFFB388FF)],
+                gradient: LinearGradient(
+                  colors: <Color>[
+                    palette.actionGradientStart,
+                    palette.actionGradientEnd,
+                  ],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8D5CFF).withValues(alpha: 0.45),
+                    color: colors.primary.withValues(alpha: 0.35),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
                 ],
               ),
               child: ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.play_arrow_rounded, size: 24),
-                label: const Text('Listen to Dream'),
+                onPressed: () => _toggleDreamPlayback(dream.content),
+                icon: Icon(
+                  _voiceService.isSpeaking
+                      ? Icons.stop_rounded
+                      : Icons.play_arrow_rounded,
+                  size: 24,
+                ),
+                label: Text(
+                  _voiceService.isSpeaking ? 'Stop Reading' : 'Listen to Dream',
+                ),
                 style: ElevatedButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor: Colors.transparent,
@@ -294,8 +347,8 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
                     borderRadius: BorderRadius.circular(18),
                   ),
                   textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -310,10 +363,10 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
-                  color: const Color(0xFF16213E),
+                  color: colors.surface,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.22),
+                      color: theme.shadowColor,
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),
@@ -324,25 +377,25 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
                   children: [
                     Text(
                       dream.content,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: const Color(0xFFE7EBFF),
-                            fontSize: 17,
-                            height: 1.65,
-                            letterSpacing: 0.2,
-                          ),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: colors.onSurface,
+                        fontSize: 17,
+                        height: 1.65,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                     const SizedBox(height: 18),
                     Divider(
-                      color: Colors.white.withValues(alpha: 0.18),
+                      color: theme.dividerColor.withValues(alpha: 0.8),
                       height: 1,
                     ),
                     const SizedBox(height: 14),
                     Text(
                       'Dream Themes',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: colors.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     _buildDreamThemes(dream.tags),
@@ -358,8 +411,11 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E21),
+      backgroundColor: theme.scaffoldBackgroundColor,
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Padding(
@@ -383,9 +439,9 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
                     child: Text(
                       message,
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.white70,
-                          ),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 );
@@ -396,9 +452,9 @@ class _DetailReaderScreenState extends State<DetailReaderScreen> {
                 return Center(
                   child: Text(
                     'Dream not found.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.white70,
-                        ),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
                   ),
                 );
               }

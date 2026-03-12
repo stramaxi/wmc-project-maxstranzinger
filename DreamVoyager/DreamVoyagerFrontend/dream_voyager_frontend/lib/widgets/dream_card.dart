@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/dream_model.dart';
 
 class DreamCard extends StatelessWidget {
-  const DreamCard({
-    required this.dream,
-    required this.onTap,
-    super.key,
-  });
+  const DreamCard({required this.dream, required this.onTap, super.key});
 
   final Dream dream;
   final VoidCallback onTap;
@@ -44,6 +40,7 @@ class DreamCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final tags = dream.tags;
 
     return Hero(
@@ -57,10 +54,10 @@ class DreamCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              color: const Color(0xFF2A2340),
+              color: colors.surface,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8D5CFF).withValues(alpha: 0.16),
+                  color: colors.primary.withValues(alpha: 0.16),
                   blurRadius: 20,
                   spreadRadius: 0.5,
                   offset: const Offset(0, 10),
@@ -76,7 +73,7 @@ class DreamCard extends StatelessWidget {
                     Text(
                       _formattedDate(dream.createdAt),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white70,
+                        color: colors.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -92,16 +89,16 @@ class DreamCard extends StatelessWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                        height: 1.4,
-                      ),
+                    color: colors.onSurface,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 if (tags.isEmpty)
                   Text(
                     'No tags',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white54,
+                      color: colors.onSurfaceVariant,
                     ),
                   )
                 else
@@ -118,17 +115,16 @@ class DreamCard extends StatelessWidget {
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF8D5CFF).withValues(alpha: 0.22),
+                            color: colors.primary.withValues(alpha: 0.14),
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
-                              color:
-                                  const Color(0xFFB49BFF).withValues(alpha: 0.45),
+                              color: colors.primary.withValues(alpha: 0.35),
                             ),
                           ),
                           child: Text(
                             tags[index],
                             style: theme.textTheme.labelMedium?.copyWith(
-                              color: Colors.white,
+                              color: colors.onSurface,
                               fontWeight: FontWeight.w500,
                             ),
                           ),

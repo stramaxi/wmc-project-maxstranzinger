@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../models/dream_model.dart';
 import '../services/api_service.dart';
+import '../widgets/dream_bottom_navigation_bar.dart';
 import '../widgets/dream_card.dart';
 import 'analytics_screen.dart';
 import 'detail_reader_screen.dart';
 import 'recorder_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -17,7 +19,6 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final ApiService _apiService = ApiService();
   late Future<List<Dream>> _dreamsFuture;
-  int _selectedTab = 0;
 
   @override
   void initState() {
@@ -33,11 +34,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _openRecorder() async {
-    final bool? saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => const RecorderScreen(),
-      ),
-    );
+    final bool? saved = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const RecorderScreen()));
 
     if (saved == true && mounted) {
       await _refreshDreams();
@@ -45,85 +44,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _openAnalytics() async {
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const AnalyticsScreen()));
+  }
+
+  Future<void> _openSettings() async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) => const AnalyticsScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
     );
   }
 
   void _openDetail(Dream dream) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => DetailReaderScreen(dream: dream),
-      ),
-    );
-  }
-
-  Widget _navIcon({
-    required IconData icon,
-    required bool isActive,
-  }) {
-    if (!isActive) {
-      return Icon(icon);
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF8D5CFF).withValues(alpha: 0.22),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8D5CFF).withValues(alpha: 0.55),
-            blurRadius: 16,
-            spreadRadius: 0.5,
-          ),
-        ],
-      ),
-      child: Icon(icon),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => DetailReaderScreen(dream: dream)));
   }
 
   Future<void> _onNavTap(int index) async {
     if (index == 1) {
       await _openRecorder();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _selectedTab = 0;
-      });
       return;
     }
 
     if (index == 2) {
       await _openAnalytics();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _selectedTab = 0;
-      });
       return;
     }
 
     if (index == 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Coming soon.')),
-      );
-      setState(() {
-        _selectedTab = index;
-      });
-      return;
+      await _openSettings();
     }
-
-    setState(() {
-      _selectedTab = index;
-    });
   }
 
   Widget _buildHeader() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Row(
       children: [
         Expanded(
@@ -132,17 +89,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text(
                 'DreamVoyager',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Your mystical journey',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade400,
-                    ),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -152,31 +108,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
           height: 48,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: const Color(0xFF1A1730),
-            border: Border.all(color: const Color(0xFF8D5CFF).withValues(alpha: 0.55)),
+            color: colors.tertiary,
+            border: Border.all(color: colors.primary.withValues(alpha: 0.55)),
           ),
-          child: const Icon(Icons.cloud_outlined, color: Colors.white),
+          child: Icon(Icons.cloud_outlined, color: colors.onSurface),
         ),
       ],
     );
   }
 
   Widget _buildSectionTitle(int count) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           'Dream Cloud',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         Text(
           '$count dreams captured',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade400,
-              ),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
         ),
       ],
     );
@@ -184,9 +142,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildDreamsList(List<Dream> dreams) {
     if (dreams.isEmpty) {
-      return const Center(
-        child: Text('No dreams yet. Record your first one.'),
-      );
+      return const Center(child: Text('No dreams yet. Record your first one.'));
     }
 
     return RefreshIndicator(
@@ -197,10 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         separatorBuilder: (_, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final dream = dreams[index];
-          return DreamCard(
-            dream: dream,
-            onTap: () => _openDetail(dream),
-          );
+          return DreamCard(dream: dream, onTap: () => _openDetail(dream));
         },
       ),
     );
@@ -208,8 +161,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E21),
+      backgroundColor: theme.scaffoldBackgroundColor,
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Padding(
@@ -255,39 +210,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedTab,
+      bottomNavigationBar: DreamBottomNavigationBar(
+        currentIndex: 0,
         onTap: _onNavTap,
-        backgroundColor: const Color(0xFF11152D),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white54,
-        showUnselectedLabels: true,
-        items: [
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.cloud_outlined, isActive: false),
-            activeIcon: _navIcon(icon: Icons.cloud_outlined, isActive: true),
-            label: 'Dreams',
-          ),
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.mic_none_rounded, isActive: false),
-            activeIcon:
-                _navIcon(icon: Icons.mic_none_rounded, isActive: true),
-            label: 'Record',
-          ),
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.bar_chart_outlined, isActive: false),
-            activeIcon:
-                _navIcon(icon: Icons.bar_chart_outlined, isActive: true),
-            label: 'Stats',
-          ),
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.settings_outlined, isActive: false),
-            activeIcon:
-                _navIcon(icon: Icons.settings_outlined, isActive: true),
-            label: 'Settings',
-          ),
-        ],
       ),
     );
   }

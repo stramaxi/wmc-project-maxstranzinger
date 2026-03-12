@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../services/voice_service.dart';
+import '../widgets/app_snackbar.dart';
+import '../widgets/dream_bottom_navigation_bar.dart';
 import '../widgets/mood_slider.dart';
+import 'analytics_screen.dart';
+import 'settings_screen.dart';
 
 class RecordDreamScreen extends StatefulWidget {
   const RecordDreamScreen({super.key});
@@ -10,21 +15,92 @@ class RecordDreamScreen extends StatefulWidget {
   State<RecordDreamScreen> createState() => _RecordDreamScreenState();
 }
 
-class _RecordDreamScreenState extends State<RecordDreamScreen> {
+class _RecordDreamScreenState extends State<RecordDreamScreen>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _dreamController = TextEditingController();
   final TextEditingController _tagsController = TextEditingController();
   final ApiService _apiService = ApiService();
+  final VoiceService _voiceService = VoiceService();
 
   bool _isSaving = false;
-  bool _isRecording = false;
   double _moodScore = 5;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
+
+  bool get _isRecording => _voiceService.isListening;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    _pulseAnimation = CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    );
+    _voiceService.addListener(_handleVoiceStateChanged);
+  }
 
   @override
   void dispose() {
+    _voiceService
+      ..removeListener(_handleVoiceStateChanged)
+      ..dispose();
+    _pulseController.dispose();
     _dreamController.dispose();
     _tagsController.dispose();
     super.dispose();
+  }
+
+  void _handleVoiceStateChanged() {
+    if (!mounted) {
+      return;
+    }
+
+    if (_voiceService.isListening) {
+      if (!_pulseController.isAnimating) {
+        _pulseController.repeat(reverse: true);
+      }
+    } else {
+      _pulseController
+        ..stop()
+        ..value = 0;
+    }
+
+    setState(() {});
+  }
+
+  void _showVoiceError(String message) {
+    showAppSnackBar(context, message, icon: Icons.mic_off_outlined);
+  }
+
+  Future<void> _toggleListening() async {
+    await _voiceService.toggleListening(
+      controller: _dreamController,
+      onError: _showVoiceError,
+    );
+  }
+
+  Future<void> _startListening() async {
+    if (_voiceService.isListening) {
+      return;
+    }
+
+    await _voiceService.startListening(
+      controller: _dreamController,
+      onError: _showVoiceError,
+    );
+  }
+
+  Future<void> _stopListening() async {
+    if (!_voiceService.isListening) {
+      return;
+    }
+
+    await _voiceService.stopListening();
   }
 
   List<String> _parseTags() {
@@ -54,20 +130,12 @@ class _RecordDreamScreenState extends State<RecordDreamScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            duration: Duration(seconds: 1),
-            content: Row(
-              children: [
-                Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text('Dream saved!'),
-              ],
-            ),
-          ),
-        );
+      showAppSnackBar(
+        context,
+        'Dream saved!',
+        icon: Icons.check_circle_outline,
+        duration: const Duration(seconds: 1),
+      );
       await Future<void>.delayed(const Duration(milliseconds: 900));
       if (!mounted) {
         return;
@@ -77,9 +145,7 @@ class _RecordDreamScreenState extends State<RecordDreamScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to save dream right now.')),
-      );
+      showAppSnackBar(context, 'Unable to save dream right now.');
     } finally {
       if (mounted) {
         setState(() {
@@ -89,44 +155,33 @@ class _RecordDreamScreenState extends State<RecordDreamScreen> {
     }
   }
 
-  Widget _navIcon({required IconData icon, required bool isActive}) {
-    if (!isActive) {
-      return Icon(icon);
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF8D5CFF).withValues(alpha: 0.28),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8D5CFF).withValues(alpha: 0.55),
-            blurRadius: 18,
-          ),
-        ],
-      ),
-      child: Icon(icon),
-    );
-  }
-
   Future<void> _onNavTap(int index) async {
     if (index == 0) {
       Navigator.of(context).pop();
       return;
     }
 
-    if (index == 2 || index == 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Coming soon.')),
+    if (index == 2) {
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
+      );
+      return;
+    }
+
+    if (index == 3) {
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const SettingsScreen()),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E21),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -145,55 +200,77 @@ class _RecordDreamScreenState extends State<RecordDreamScreen> {
                         children: [
                           Text(
                             'Record Dream',
-                            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                            style: theme.textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Speak your dream into existence',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.white60,
-                                ),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
                           ),
                           const SizedBox(height: 28),
                           Center(
                             child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _isRecording = !_isRecording;
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                width: 170,
-                                height: 170,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFF7B61FF).withValues(
-                                    alpha: _isRecording ? 0.32 : 0.18,
-                                  ),
-                                  border: Border.all(
-                                    color: const Color(0xFF7B61FF).withValues(
-                                      alpha: _isRecording ? 0.55 : 0.32,
-                                    ),
-                                    width: 2,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF7B61FF).withValues(
-                                        alpha: _isRecording ? 0.68 : 0.3,
+                              onTap: _toggleListening,
+                              onLongPressStart: (_) => _startListening(),
+                              onLongPressEnd: (_) => _stopListening(),
+                              child: AnimatedBuilder(
+                                animation: _pulseAnimation,
+                                builder: (context, child) {
+                                  final pulse = _isRecording
+                                      ? _pulseAnimation.value
+                                      : 0.0;
+
+                                  return Transform.scale(
+                                    scale: 1 + (pulse * 0.04),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 250,
                                       ),
-                                      blurRadius: _isRecording ? 46 : 24,
-                                      spreadRadius: _isRecording ? 7 : 2,
+                                      width: 170,
+                                      height: 170,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: colors.primary.withValues(
+                                          alpha: _isRecording
+                                              ? 0.32 + (pulse * 0.08)
+                                              : 0.18,
+                                        ),
+                                        border: Border.all(
+                                          color: colors.primary.withValues(
+                                            alpha: _isRecording ? 0.55 : 0.32,
+                                          ),
+                                          width: 2,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: colors.primary.withValues(
+                                              alpha: _isRecording
+                                                  ? 0.5 + (pulse * 0.18)
+                                                  : 0.3,
+                                            ),
+                                            blurRadius: _isRecording
+                                                ? 34 + (pulse * 18)
+                                                : 24,
+                                            spreadRadius: _isRecording
+                                                ? 3 + (pulse * 6)
+                                                : 2,
+                                          ),
+                                        ],
+                                      ),
+                                      child: child,
                                     ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.mic_none_rounded,
+                                  );
+                                },
+                                child: Icon(
+                                  _isRecording
+                                      ? Icons.mic_rounded
+                                      : Icons.mic_none_rounded,
                                   size: 58,
-                                  color: Color(0xFF9F8BFF),
+                                  color: colors.primary,
                                 ),
                               ),
                             ),
@@ -201,10 +278,12 @@ class _RecordDreamScreenState extends State<RecordDreamScreen> {
                           const SizedBox(height: 20),
                           Center(
                             child: Text(
-                              _isRecording ? 'Recording...' : 'Tap to start recording',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: Colors.white60,
-                                  ),
+                              _isRecording
+                                  ? 'Recording...'
+                                  : 'Tap or hold to start recording',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 22),
@@ -214,11 +293,9 @@ class _RecordDreamScreenState extends State<RecordDreamScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF16213E),
+                          color: colors.surface,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: const Color(0xFF2F3F73),
-                          ),
+                          border: Border.all(color: colors.outline),
                         ),
                         child: Column(
                           children: [
@@ -226,10 +303,9 @@ class _RecordDreamScreenState extends State<RecordDreamScreen> {
                               controller: _dreamController,
                               minLines: 4,
                               maxLines: 6,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
+                              style: TextStyle(color: colors.onSurface),
+                              decoration: InputDecoration(
                                 hintText: 'Your words will appear here...',
-                                hintStyle: TextStyle(color: Colors.white38),
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
@@ -256,10 +332,9 @@ class _RecordDreamScreenState extends State<RecordDreamScreen> {
                             TextFormField(
                               controller: _tagsController,
                               onChanged: (_) => setState(() {}),
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(color: colors.onSurface),
                               decoration: const InputDecoration(
                                 hintText: 'Add tags separated by commas',
-                                hintStyle: TextStyle(color: Colors.white38),
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
@@ -280,20 +355,24 @@ class _RecordDreamScreenState extends State<RecordDreamScreen> {
                                             vertical: 6,
                                           ),
                                           decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(999),
-                                            color: const Color(0xFF8D5CFF)
-                                                .withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(
+                                              999,
+                                            ),
+                                            color: colors.primary.withValues(
+                                              alpha: 0.16,
+                                            ),
                                             border: Border.all(
-                                              color: const Color(0xFFC8B4FF)
-                                                  .withValues(alpha: 0.45),
+                                              color: colors.primary.withValues(
+                                                alpha: 0.35,
+                                              ),
                                             ),
                                           ),
                                           child: Text(
                                             tag,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .labelMedium
-                                                ?.copyWith(color: Colors.white),
+                                            style: theme.textTheme.labelMedium
+                                                ?.copyWith(
+                                                  color: colors.onSurface,
+                                                ),
                                           ),
                                         ),
                                       )
@@ -307,13 +386,8 @@ class _RecordDreamScreenState extends State<RecordDreamScreen> {
                               child: FilledButton(
                                 onPressed: _isSaving ? null : _saveDream,
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF7B61FF),
-                                  disabledBackgroundColor:
-                                      const Color(0xFF7B61FF).withValues(alpha: 0.45),
-                                  minimumSize: const Size.fromHeight(48),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
+                                  disabledBackgroundColor: colors.primary
+                                      .withValues(alpha: 0.45),
                                 ),
                                 child: _isSaving
                                     ? const SizedBox(
@@ -338,39 +412,9 @@ class _RecordDreamScreenState extends State<RecordDreamScreen> {
           },
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: DreamBottomNavigationBar(
         currentIndex: 1,
         onTap: _onNavTap,
-        backgroundColor: const Color(0xFF11152D),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white54,
-        showUnselectedLabels: true,
-        items: [
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.cloud_outlined, isActive: false),
-            activeIcon: _navIcon(icon: Icons.cloud_outlined, isActive: true),
-            label: 'Dreams',
-          ),
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.mic_none_rounded, isActive: false),
-            activeIcon:
-                _navIcon(icon: Icons.mic_none_rounded, isActive: true),
-            label: 'Record',
-          ),
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.bar_chart_outlined, isActive: false),
-            activeIcon:
-                _navIcon(icon: Icons.bar_chart_outlined, isActive: true),
-            label: 'Stats',
-          ),
-          BottomNavigationBarItem(
-            icon: _navIcon(icon: Icons.settings_outlined, isActive: false),
-            activeIcon:
-                _navIcon(icon: Icons.settings_outlined, isActive: true),
-            label: 'Settings',
-          ),
-        ],
       ),
     );
   }
