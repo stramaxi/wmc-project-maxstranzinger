@@ -99,7 +99,7 @@ class VoiceService extends ChangeNotifier {
 
     final available = await _ensureSpeechInitialized();
     if (!available) {
-      onError('Microphone permission was denied.');
+      onError(_speechUnavailableMessage());
       return false;
     }
 
@@ -162,10 +162,15 @@ class VoiceService extends ChangeNotifier {
     }
 
     _speechInitialized = await _speechToText.initialize(
-      debugLogging: false,
+      debugLogging: kDebugMode,
       onError: _handleSpeechError,
       onStatus: _handleSpeechStatus,
     );
+
+    if (kDebugMode) {
+      debugPrint('VoiceService.initialize available=$_speechInitialized');
+    }
+
     return _speechInitialized;
   }
 
@@ -220,6 +225,10 @@ class VoiceService extends ChangeNotifier {
   }
 
   void _handleSpeechStatus(String status) {
+    if (kDebugMode) {
+      debugPrint('VoiceService.status $status');
+    }
+
     if (status == 'notListening' || status == 'done') {
       _setListening(false);
       _manualStopRequested = false;
@@ -227,6 +236,12 @@ class VoiceService extends ChangeNotifier {
   }
 
   void _handleSpeechError(SpeechRecognitionError error) {
+    if (kDebugMode) {
+      debugPrint(
+        'VoiceService.error ${error.errorMsg} permanent=${error.permanent}',
+      );
+    }
+
     _setListening(false);
 
     if (error.errorMsg == 'error_speech_timeout' && _receivedAnySpeechResult) {
@@ -242,9 +257,8 @@ class VoiceService extends ChangeNotifier {
     final message = switch (error.errorMsg) {
       'error_permission' ||
       'error_permission_denied' => 'Microphone permission was denied.',
-      'error_no_match' => 'No speech detected. Try again.',
-      'error_speech_timeout' =>
-        'Listening timed out. Speak right after tapping the microphone.',
+      'error_no_match' => _noSpeechDetectedMessage(),
+      'error_speech_timeout' => _speechTimeoutMessage(),
       _ => 'Voice capture stopped unexpectedly.',
     };
 
@@ -263,6 +277,30 @@ class VoiceService extends ChangeNotifier {
 
     return errorCode == 'error_client' ||
         errorCode == 'error_server_disconnected';
+  }
+
+  String _speechUnavailableMessage() {
+    if (Platform.isAndroid) {
+      return 'Speech recognition is unavailable. Check microphone permission and make sure Android speech services are enabled.';
+    }
+
+    return 'Speech recognition is unavailable right now.';
+  }
+
+  String _noSpeechDetectedMessage() {
+    if (Platform.isAndroid) {
+      return 'No speech detected. Speak immediately after tapping the microphone. On an emulator, open the Google app once and allow microphone access.';
+    }
+
+    return 'No speech detected. Try again.';
+  }
+
+  String _speechTimeoutMessage() {
+    if (Platform.isAndroid) {
+      return 'Listening timed out. Speak immediately after tapping the microphone. On an emulator, make sure the Google app and offline speech are set up.';
+    }
+
+    return 'Listening timed out. Speak right after tapping the microphone.';
   }
 
   String _composeText(String seedText, String recognizedWords) {

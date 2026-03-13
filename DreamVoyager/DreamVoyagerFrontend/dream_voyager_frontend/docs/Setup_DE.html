@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DreamVoyager Frontend - Setup (Deutsch)</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.5; color: #111; }
+    h1 { font-size: 26px; margin-bottom: 8px; }
+    h2 { font-size: 20px; margin-top: 24px; }
+    code, pre { font-family: Consolas, monospace; }
+    pre { background: #f4f4f4; border: 1px solid #ddd; padding: 10px; border-radius: 6px; white-space: pre-wrap; }
+    ul, ol { margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <h1>DreamVoyager Frontend - Einrichtung auf einem neuen Laptop (Deutsch)</h1>
+
+  <h2>1) Projekt klonen</h2>
+  <pre>git clone &lt;REPO_URL&gt;
+cd DreamVoyager\DreamVoyagerFrontend\dream_voyager_frontend</pre>
+
+  <h2>2) Abhängigkeiten installieren</h2>
+  <pre>flutter pub get</pre>
+
+  <h2>3) Backend starten (wichtig)</h2>
+  <p>Die App erwartet eine API auf Port 3000.</p>
+  <ul>
+    <li>Android Emulator: http://10.0.2.2:3000/api</li>
+    <li>Desktop/Web: http://localhost:3000/api</li>
+  </ul>
+
+  <h2>4) Emulator starten</h2>
+  <p>In Android Studio den Device Manager öffnen und einen Emulator starten.</p>
+  <pre>flutter devices</pre>
+
+  <h2>5) App starten</h2>
+  <pre>flutter run -d emulator-5554</pre>
+
+  <h2>6) Speech-to-Text / Mikrofon Troubleshooting</h2>
+  <ol>
+    <li>Mikrofonzugriff im Emulator aktivieren</li>
+    <li>Google-App im Emulator öffnen und Mikrofon erlauben</li>
+    <li>Testen, ob Spracheingabe in der Google-App funktioniert</li>
+    <li>Emulator bei Bedarf per Cold Boot neu starten</li>
+  </ol>
+</body>
+</html>

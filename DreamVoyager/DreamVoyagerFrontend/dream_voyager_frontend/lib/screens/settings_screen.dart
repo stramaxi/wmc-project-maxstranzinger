@@ -120,12 +120,26 @@ class _ThemeCard extends StatelessWidget {
               height: 60,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: colors.tertiary,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    option.previewColors[0],
+                    option.previewColors[1],
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: option.previewColors[2].withValues(alpha: 0.45),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Icon(
                 option.icon,
-                color: colors.onSurfaceVariant,
-                size: 30,
+                color: option.previewColors[2],
+                size: 28,
               ),
             ),
             const SizedBox(width: 18),

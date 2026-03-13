@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum DreamAppTheme { midnight, etherealWhite, classicDark }
+enum DreamAppTheme { midnight, etherealWhite, classicDark, lucidRose, emeraldGalaxy }
 
 class DreamThemeOption {
   const DreamThemeOption({
@@ -142,6 +142,26 @@ class ThemeService extends ChangeNotifier {
         Color(0xFF76A9FF),
       ],
     ),
+    DreamThemeOption(
+      theme: DreamAppTheme.lucidRose,
+      label: 'Lucid Rose',
+      icon: Icons.local_florist_rounded,
+      previewColors: <Color>[
+        Color(0xFF1A0B2E),
+        Color(0xFF2D1254),
+        Color(0xFFFF007F),
+      ],
+    ),
+    DreamThemeOption(
+      theme: DreamAppTheme.emeraldGalaxy,
+      label: 'Emerald Galaxy',
+      icon: Icons.auto_awesome_rounded,
+      previewColors: <Color>[
+        Color(0xFF05161A),
+        Color(0xFF072E33),
+        Color(0xFF00F5D4),
+      ],
+    ),
   ];
 
   final SharedPreferences _preferences;
@@ -160,6 +180,8 @@ class ThemeService extends ChangeNotifier {
       DreamAppTheme.midnight => _buildMidnightTheme(),
       DreamAppTheme.etherealWhite => _buildEtherealWhiteTheme(),
       DreamAppTheme.classicDark => _buildClassicDarkTheme(),
+      DreamAppTheme.lucidRose => _buildLucidRoseTheme(),
+      DreamAppTheme.emeraldGalaxy => _buildEmeraldGalaxyTheme(),
     };
   }
 
@@ -209,6 +231,72 @@ class ThemeService extends ChangeNotifier {
         Color(0xFF965CFF),
         Color(0xFF3E7DD8),
         Color(0xFFB85DCD),
+      ],
+    );
+  }
+
+  static ThemeData _buildLucidRoseTheme() {
+    return _buildTheme(
+      brightness: Brightness.dark,
+      background: const Color(0xFF1A0B2E),
+      card: const Color(0xFF2D1254),
+      cardElevated: const Color(0xFF3D1A6E),
+      accent: const Color(0xFFFF007F),
+      accentSecondary: const Color(0xFFB026FF),
+      navBackground: const Color(0xFF130824),
+      textPrimary: Colors.white,
+      textMuted: const Color(0xFFD4A8E8),
+      textSoft: const Color(0xFFA07AB8),
+      outline: const Color(0xFF5C2E8E),
+      outlineSoft: const Color(0xFF421F6E),
+      iconBackground: const Color(0xFF260A45),
+      chartGrid: const Color(0xFF4D2080),
+      chartGridSecondary: const Color(0xFF3A1860),
+      chartBorder: const Color(0xFF6B35A0),
+      success: const Color(0xFF7BE0A0),
+      balanced: const Color(0xFFB026FF),
+      alert: const Color(0xFFFF8A8A),
+      actionGradientStart: const Color(0xFFFF007F),
+      actionGradientEnd: const Color(0xFFB026FF),
+      analyticsPalette: const <Color>[
+        Color(0xFFFF007F),
+        Color(0xFFB026FF),
+        Color(0xFFFF5CAD),
+        Color(0xFFD44FFF),
+        Color(0xFFFF3399),
+      ],
+    );
+  }
+
+  static ThemeData _buildEmeraldGalaxyTheme() {
+    return _buildTheme(
+      brightness: Brightness.dark,
+      background: const Color(0xFF05161A),
+      card: const Color(0xFF072E33),
+      cardElevated: const Color(0xFF0A3D44),
+      accent: const Color(0xFF00F5D4),
+      accentSecondary: const Color(0xFF70E000),
+      navBackground: const Color(0xFF031013),
+      textPrimary: const Color(0xFFE8FFF9),
+      textMuted: const Color(0xFF7EB8C0),
+      textSoft: const Color(0xFF4D8A94),
+      outline: const Color(0xFF1A5C66),
+      outlineSoft: const Color(0xFF0F3D44),
+      iconBackground: const Color(0xFF062028),
+      chartGrid: const Color(0xFF0E4A53),
+      chartGridSecondary: const Color(0xFF0A3A42),
+      chartBorder: const Color(0xFF166070),
+      success: const Color(0xFF70E000),
+      balanced: const Color(0xFF00F5D4),
+      alert: const Color(0xFFFF8A8A),
+      actionGradientStart: const Color(0xFF00F5D4),
+      actionGradientEnd: const Color(0xFF70E000),
+      analyticsPalette: const <Color>[
+        Color(0xFF00F5D4),
+        Color(0xFF70E000),
+        Color(0xFF00C9AE),
+        Color(0xFF9AE600),
+        Color(0xFF1ED9BC),
       ],
     );
   }
